@@ -2,7 +2,7 @@ name: FAANG Weekly Run
 
 on:
   schedule:
-    - cron: "0 6 * * 6"  # Every Saturday at 06:00 UTC
+    - cron: "0 21 * * *"  # Daily at 21:00 UTC (Dublin local 21:00 in winter, 22:00 in summer)
   workflow_dispatch:
 
 jobs:
