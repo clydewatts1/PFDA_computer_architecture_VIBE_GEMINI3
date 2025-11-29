@@ -47,6 +47,11 @@ def get_data(tickers: list[str] = FAANG) -> Path:
         )
         if df.empty:
             continue
+        
+        # Flatten MultiIndex columns if present
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [col[0] for col in df.columns]
+        
         df = df.reset_index()
         df["Ticker"] = t
         # Normalize column names and keep essential columns
@@ -83,10 +88,18 @@ def plot_data() -> Path:
     df = df.copy()
     df.sort_values(["Ticker", "Datetime"], inplace=True)
     df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
-    def _normalize(series: pd.Series) -> pd.Series:
-        base = series.dropna().iloc[0] if not series.dropna().empty else pd.NA
-        return series / base if pd.notna(base) and base != 0 else pd.NA
-    df["NormClose"] = df.groupby("Ticker")["Close"].transform(_normalize)
+    
+    # Normalize each ticker group separately
+    normalized = []
+    for ticker, group in df.groupby("Ticker"):
+        group = group.copy()
+        valid = group["Close"].dropna()
+        if not valid.empty and valid.iloc[0] != 0:
+            group["NormClose"] = group["Close"] / valid.iloc[0]
+        else:
+            group["NormClose"] = pd.NA
+        normalized.append(group)
+    df = pd.concat(normalized, ignore_index=True)
 
     plt.figure(figsize=(10, 6))
     for t, g in df.groupby("Ticker"):
